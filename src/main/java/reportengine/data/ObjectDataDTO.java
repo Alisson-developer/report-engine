@@ -1,6 +1,12 @@
 package reportengine.data;
 
+import reportengine.annotations.ColumnReport;
+import reportengine.annotations.Report;
+
+@Report(name = "Relatorio-anotado", sheetName = "Aba 1")
 public class ObjectDataDTO {
+
+    @ColumnReport(title = "Nome do Cidadão")
     private String name;
     private int age;
     private float height;
