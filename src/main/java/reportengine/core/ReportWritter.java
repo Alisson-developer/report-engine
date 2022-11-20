@@ -22,11 +22,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reportengine.annotations.ColumnReport;
 import reportengine.annotations.Report;
+import reportengine.enums.ColorStyleFor;
 
 public class ReportWritter<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReportWritter.class);
     private final XSSFWorkbook workbook = new XSSFWorkbook();
+    private final XSSFCellStyle cellStyle = workbook.createCellStyle();
+
+    private XSSFColor colorBorder;
+    private XSSFColor colorCell;
+    private XSSFFont fontStyle;
 
     public ReportWritter() {
         // Constructor default
@@ -42,7 +48,7 @@ public class ReportWritter<T> {
         putData(registers, fields, sheet, obj);
     }
 
-    protected void buildContent(List<T> objs, List<List<Object>> registers, Field[] fields) {
+    private void buildContent(List<T> objs, List<List<Object>> registers, Field[] fields) {
         List<Object> attributeFields = new ArrayList<>();
         List<Object> attributeValues = new ArrayList<>();
 
@@ -69,7 +75,11 @@ public class ReportWritter<T> {
             for(Field field: fields) {
                 field.setAccessible(true);
                 try {
-                    attributeValues.add(field.get(obj));
+                    if (obj != null) {
+                        attributeValues.add(field.get(obj) != null ? field.get(obj) : " - ");
+                    } else {
+                        attributeValues.add("-");
+                    }
                 } catch (IllegalAccessException e) {
                     LOGGER.error(e.getMessage());
                 }
@@ -112,38 +122,45 @@ public class ReportWritter<T> {
     }
 
     private void applyTitleStyle(XSSFSheet sheet, int lineIndex, int cellIndex) {
-        XSSFColor colorCell = new XSSFColor(new Color(43,150,150), null);
-        XSSFColor colorBorder = new XSSFColor(new Color(50,50,50), null);
-        XSSFCellStyle cellStyle = workbook.createCellStyle();
-
-        XSSFFont font = workbook.createFont();
-        font.setFontHeight(10);
-        font.setBold(true);
-
         sheet.setDefaultColumnWidth(25);
         sheet.setAutobreaks(true);
-
-        cellStyle.setFillForegroundColor(colorCell);
-        cellStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        cellStyle.setAlignment(HorizontalAlignment.CENTER);
-        cellStyle.setFont(font);
-
-        buildBorder(cellStyle, BorderStyle.THIN, colorBorder);
 
         XSSFCell cell = sheet.getRow(lineIndex).getCell(--cellIndex);
         cell.setCellStyle(cellStyle);
     }
 
-    private void buildBorder(XSSFCellStyle cellStyle, BorderStyle borderStyle, XSSFColor borderColor) {
-        cellStyle.setBorderTop(borderStyle);
-        cellStyle.setBorderRight(borderStyle);
-        cellStyle.setBorderBottom(borderStyle);
-        cellStyle.setBorderLeft(borderStyle);
 
-        cellStyle.setTopBorderColor(borderColor);
-        cellStyle.setRightBorderColor(borderColor);
-        cellStyle.setBottomBorderColor(borderColor);
-        cellStyle.setLeftBorderColor(borderColor);
+    public void applyFont(double fontHeight, boolean isBold, XSSFColor fontColor, String fontName, boolean isItalic) {
+        XSSFFont font = workbook.createFont();
+        font.setFontHeight(fontHeight);
+        font.setBold(isBold);
+        font.setColor(fontColor);
+        font.setFontName(fontName);
+        font.setItalic(isItalic);
+        this.cellStyle.setFont(font);
+    }
+
+    public void applyCellStyle(XSSFColor colorCell, FillPatternType patternType, HorizontalAlignment alignment) {
+        this.cellStyle.setFillForegroundColor(colorCell);
+        this.cellStyle.setFillPattern(patternType);
+        this.cellStyle.setAlignment(alignment);
+    }
+
+    /**
+     * Apply border for selected cell
+     * @param borderStyle type border
+     * @param borderColor border color
+     */
+    public void applyBorder(BorderStyle borderStyle, XSSFColor borderColor) {
+        this.cellStyle.setBorderTop(borderStyle);
+        this.cellStyle.setBorderRight(borderStyle);
+        this.cellStyle.setBorderBottom(borderStyle);
+        this.cellStyle.setBorderLeft(borderStyle);
+
+        this.cellStyle.setTopBorderColor(borderColor);
+        this.cellStyle.setRightBorderColor(borderColor);
+        this.cellStyle.setBottomBorderColor(borderColor);
+        this.cellStyle.setLeftBorderColor(borderColor);
     }
 
     /**
@@ -155,5 +172,51 @@ public class ReportWritter<T> {
      */
     private void applyFilter(XSSFSheet sheet, int lineIndex, int cellStart, int cellEnd) {
         sheet.setAutoFilter(new CellRangeAddress(lineIndex, lineIndex, cellStart, cellEnd));
+    }
+
+    public void applyColorIn(int red, int green, int blue, ColorStyleFor colorStyleFor) {
+        if (colorStyleFor.equals(ColorStyleFor.COLORCELL)) {
+            setColorCell(red, green, blue);
+        } else if (colorStyleFor.equals(ColorStyleFor.COLORBORDER)) {
+            setColorBorder(red, green, blue);
+        } else {
+            LOGGER.error("No Informed ColorStyleFor");
+        }
+    }
+
+    private void setColorCell(int red, int green, int blue) {
+        this.colorCell = new XSSFColor(new Color(red, green, blue),null);
+    }
+
+    private void setColorBorder(int red, int green, int blue) {
+        this.colorBorder = new XSSFColor(new Color(red, green, blue),null);
+    }
+
+    public XSSFCellStyle getCellStyle() {
+        return cellStyle;
+    }
+
+    public XSSFFont getFontStyle() {
+        return fontStyle;
+    }
+
+    public void setFontStyle(XSSFFont fontStyle) {
+        this.fontStyle = fontStyle;
+    }
+
+    public XSSFColor getColorBorder() {
+        return colorBorder;
+    }
+
+    public void setColorBorder(XSSFColor colorBorder) {
+        this.colorBorder = colorBorder;
+    }
+
+    public XSSFColor getColorCell() {
+        return colorCell;
+    }
+
+    public void setColorCell(XSSFColor colorCell) {
+        this.colorCell = colorCell;
     }
 }
